@@ -1,0 +1,96 @@
+// The downloader page, served by the Worker with the Turnstile site key
+// injected. Clean, ink-palette, no framework. The browser downloads bytes
+// same-origin from this Worker (/dl), so there is no CORS and a real Save-As.
+
+export function renderPage(siteKey: string): string {
+  return `<!doctype html>
+<html lang="en" data-theme="auto">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Instagram Downloader</title>
+<meta name="description" content="Download public Instagram videos, reels, photos, carousels and stories by link." />
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+<style>
+:root{--bg:#fbfbfa;--ink:#1a1a1a;--muted:#6b6b6b;--line:#e6e6e3;--card:#fff;--accent:#1a1a1a}
+@media (prefers-color-scheme:dark){:root{--bg:#121212;--ink:#f2f2f0;--muted:#9a9a9a;--line:#2a2a2a;--card:#1b1b1b;--accent:#f2f2f0}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 ui-sans-serif,-apple-system,"Mona Sans",Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+main{max-width:640px;margin:0 auto;padding:64px 16px 96px}
+h1{font-size:1.9rem;font-weight:650;letter-spacing:-.02em;margin:0 0 8px}
+.sub{color:var(--muted);margin:0 0 28px}
+form{display:flex;flex-direction:column;gap:12px}
+input[type=url]{width:100%;padding:14px 16px;font-size:1rem;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink)}
+input[type=url]:focus{outline:2px solid var(--accent);outline-offset:1px}
+button{padding:13px 18px;font-size:1rem;font-weight:600;border:0;border-radius:10px;background:var(--accent);color:var(--bg);cursor:pointer}
+button:disabled{opacity:.5;cursor:default}
+.note{color:var(--muted);font-size:.85rem;margin-top:14px}
+.msg{margin-top:20px;padding:14px 16px;border:1px solid var(--line);border-radius:10px;background:var(--card)}
+.result{margin-top:24px;display:flex;flex-direction:column;gap:14px}
+.asset{display:flex;gap:14px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--card)}
+.asset img{width:84px;height:84px;object-fit:cover;border-radius:8px;background:var(--line)}
+.asset .meta{flex:1;min-width:0}
+.asset .meta b{display:block;text-transform:capitalize}
+.asset a.dl{padding:9px 14px;border-radius:8px;background:var(--accent);color:var(--bg);text-decoration:none;font-weight:600;font-size:.9rem;white-space:nowrap}
+a.zip{align-self:flex-start;padding:11px 16px;border-radius:9px;border:1px solid var(--accent);color:var(--ink);text-decoration:none;font-weight:600}
+footer{margin-top:40px;color:var(--muted);font-size:.85rem}
+footer a{color:var(--ink)}
+.spin{display:inline-block;width:16px;height:16px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:s .7s linear infinite;vertical-align:-3px}
+@keyframes s{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}}
+</style>
+</head>
+<body>
+<main>
+<h1>Instagram Downloader</h1>
+<p class="sub">Paste a public post, reel, photo, carousel or story link.</p>
+<form id="f">
+<input id="url" type="url" required placeholder="https://www.instagram.com/reel/..." autocomplete="off" />
+<div class="cf-turnstile" data-sitekey="${siteKey}"></div>
+<button id="go" type="submit">Download</button>
+</form>
+<div id="out"></div>
+<p class="note">Public content only. Need bulk or no limits? <a href="https://herascrape.com">herascrape.com</a></p>
+<footer>A free tool by <a href="https://herascrape.com">herascrape</a>.</footer>
+</main>
+<script>
+const f=document.getElementById('f'),out=document.getElementById('out'),go=document.getElementById('go');
+function msg(t){out.innerHTML='<div class="msg">'+t+'</div>'}
+function esc(s){return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+f.addEventListener('submit',async e=>{
+  e.preventDefault();
+  const url=document.getElementById('url').value.trim();
+  const token=window.turnstile&&window.turnstile.getResponse?window.turnstile.getResponse():'';
+  if(!token){msg('Please complete the verification first.');return}
+  go.disabled=true;msg('<span class="spin"></span> Fetching…');
+  try{
+    const r=await fetch('/resolve',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({url,turnstile_token:token})});
+    if(r.status===429){msg("You're going a bit fast, try again in a moment.");return}
+    if(r.status===403){msg('Verification failed, please try again.');if(window.turnstile)window.turnstile.reset();return}
+    if(r.status===404){msg('Only public content can be downloaded.');return}
+    if(!r.ok){msg("Couldn't fetch that one. Check the link and try again.");return}
+    render(await r.json());
+  }catch(_){msg('Something went wrong, try again.')}
+  finally{go.disabled=false;if(window.turnstile)window.turnstile.reset()}
+});
+function render(d){
+  const a=d.assets||[];
+  let html='<div class="result">';
+  if(d.kind==='carousel'&&a.length>1){
+    const t=a.map(x=>encodeURIComponent(x.token)).join(',');
+    html+='<a class="zip" href="/dl/zip?t='+t+'">Download all ('+a.length+') as .zip</a>';
+  }
+  a.forEach((x,i)=>{
+    html+='<div class="asset">'+
+      (x.thumbnail_url?'<img src="'+esc(x.thumbnail_url)+'" alt="" loading="lazy" />':'<div class="img"></div>')+
+      '<div class="meta"><b>'+esc(x.kind)+'</b><span>'+(x.width&&x.height?x.width+'×'+x.height:'')+'</span></div>'+
+      '<a class="dl" href="/dl?t='+encodeURIComponent(x.token)+'">Download</a>'+
+    '</div>';
+  });
+  html+='</div>';
+  out.innerHTML=html;
+}
+</script>
+</body>
+</html>`;
+}

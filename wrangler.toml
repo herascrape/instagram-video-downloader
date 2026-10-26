@@ -1,0 +1,19 @@
+name = "instagram-downloader"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+workers_dev = true
+
+# Vars — set these at deploy (Cloudflare dashboard, or `wrangler deploy --var`),
+# NOT committed. RESOLVE_SERVICE_URL is the private backend's address and must
+# stay out of this public repo.
+[vars]
+RESOLVE_SERVICE_URL = ""
+TURNSTILE_SITE_KEY = ""
+
+# Secrets, set with `wrangler secret put` (never in this file):
+#   DOWNLOAD_SIGNING_SECRET   shared with the backend /dl-token signer
+#   INTERNAL_WORKER_TOKEN     optional Worker->backend shared token
+
+# Custom domain route (enable once downloader.herascrape.com is a Cloudflare
+# zone — subdomain-delegated per the design doc):
+# routes = [{ pattern = "downloader.herascrape.com", custom_domain = true }]
