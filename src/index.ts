@@ -37,6 +37,9 @@ export default {
     if (request.method === "GET" && url.pathname === "/dl") {
       return streamOne(url, env);
     }
+    if (request.method === "GET" && url.pathname === "/view") {
+      return streamView(url, request, env);
+    }
     if (request.method === "GET" && url.pathname === "/dl/zip") {
       return streamZip(url, env);
     }
@@ -80,6 +83,43 @@ async function streamOne(url: URL, env: Env): Promise<Response> {
   const contentLength = upstream.headers.get("content-length");
   if (contentLength) headers.set("content-length", contentLength);
   return new Response(upstream.body, { status: 200, headers });
+}
+
+// Inline view (no Content-Disposition) so images open full-size and videos
+// play in-page. Forwards Range so the browser can seek video. Same signed
+// token as /dl — only backend-signed CDN URLs are ever streamed.
+async function streamView(
+  url: URL,
+  request: Request,
+  env: Env,
+): Promise<Response> {
+  const claim = await verifyToken(
+    url.searchParams.get("t") ?? "",
+    env.DOWNLOAD_SIGNING_SECRET,
+  );
+  if (!claim) return new Response("Invalid or expired link", { status: 403 });
+  const headers: Record<string, string> = { ...IG_HEADERS };
+  const range = request.headers.get("Range");
+  if (range) headers["Range"] = range;
+  const upstream = await fetch(claim.u, { headers });
+  if (!upstream.ok || !upstream.body) {
+    return new Response("Media is no longer available", { status: 502 });
+  }
+  const out = new Headers();
+  for (const h of [
+    "content-type",
+    "content-length",
+    "content-range",
+    "accept-ranges",
+    "etag",
+    "last-modified",
+  ]) {
+    const v = upstream.headers.get(h);
+    if (v) out.set(h, v);
+  }
+  if (!out.has("accept-ranges")) out.set("accept-ranges", "bytes");
+  out.set("cache-control", "private, max-age=3600");
+  return new Response(upstream.body, { status: upstream.status, headers: out });
 }
 
 async function streamZip(url: URL, env: Env): Promise<Response> {
