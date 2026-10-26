@@ -24,9 +24,10 @@ form{display:flex;flex-direction:column;gap:14px}
 .bar:focus-within{border-color:var(--pp)}
 .bar input{flex:1;min-width:0;border:0;background:transparent;color:var(--ink);padding:15px 8px 15px 16px;font-size:1rem;text-align:left;border-radius:12px}
 .bar input:focus{outline:none}
-.bar button{flex:none;margin:6px;padding:0 22px;font-size:.95rem;font-weight:600;border:0;border-radius:9px;background:var(--accent);color:var(--bg);cursor:pointer;white-space:nowrap;transition:opacity .15s}
+.bar button{flex:none;margin:6px;width:50px;display:flex;align-items:center;justify-content:center;border:0;border-radius:9px;background:var(--accent);color:var(--bg);cursor:pointer;transition:opacity .15s}
 .bar button:hover{opacity:.86}
 .bar button:disabled{opacity:.5;cursor:default}
+.bar button svg{width:21px;height:21px}
 .note{color:var(--muted);font-size:.85rem;margin-top:14px}
 .cf-turnstile{display:flex;justify-content:center}
 .cf-turnstile:empty{display:none}
@@ -51,8 +52,15 @@ form{display:flex;flex-direction:column;gap:14px}
 .lb[hidden]{display:none}
 .lb-inner{display:flex}
 .lb img,.lb video{max-width:94vw;max-height:88vh;width:auto;height:auto;border-radius:12px;display:block;background:#000}
-.lb .x{position:absolute;top:16px;right:18px;width:40px;height:40px;padding:0;border-radius:50%;background:rgba(255,255,255,.14);color:#fff;border:0;font-size:22px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s}
+.lb .x{position:absolute;top:16px;right:18px;width:40px;height:40px;padding:0;border-radius:50%;background:rgba(255,255,255,.14);color:#fff;border:0;font-size:22px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s;z-index:2}
 .lb .x:hover{background:rgba(255,255,255,.28)}
+.lb .nav{position:absolute;top:50%;transform:translateY(-50%);width:46px;height:46px;padding:0;border:0;border-radius:50%;background:rgba(255,255,255,.14);color:#fff;font-size:30px;line-height:1;cursor:pointer;display:none;align-items:center;justify-content:center;transition:background .15s;z-index:2}
+.lb.multi .nav{display:flex}
+.lb .nav:hover{background:rgba(255,255,255,.28)}
+.lb .prev{left:16px}
+.lb .next{right:16px}
+.lb .count{position:absolute;top:20px;left:50%;transform:translateX(-50%);color:#fff;font-size:.82rem;font-weight:600;background:rgba(0,0,0,.45);padding:5px 13px;border-radius:999px;display:none;z-index:2}
+.lb.multi .count{display:block}
 .spin{display:inline-block;width:16px;height:16px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:s .7s linear infinite;vertical-align:-3px}
 @keyframes s{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){.spin{animation:none}}
@@ -65,17 +73,17 @@ form{display:flex;flex-direction:column;gap:14px}
 <form id="f">
 <div class="bar">
 <input id="url" type="url" required placeholder="https://www.instagram.com/reel/..." autocomplete="off" />
-<button id="go" type="submit">Download</button>
+<button id="go" type="submit" aria-label="Download" title="Download"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 21h16"/></svg></button>
 </div>
 <div class="cf-turnstile" data-sitekey="${siteKey}" data-appearance="interaction-only"></div>
 </form>
 <div id="out"></div>
 <p class="note">Public content only. Need bulk or no limits? <a href="https://herascrape.com">herascrape.com</a></p>
 </main>
-<div id="lb" class="lb" hidden><button class="x" type="button" aria-label="Close">&times;</button><div class="lb-inner" id="lbc"></div></div>
+<div id="lb" class="lb" hidden><button class="x" type="button" aria-label="Close">&times;</button><button class="nav prev" type="button" aria-label="Previous">&#8249;</button><button class="nav next" type="button" aria-label="Next">&#8250;</button><div class="count" id="lbn"></div><div class="lb-inner" id="lbc"></div></div>
 <script>
 const f=document.getElementById('f'),out=document.getElementById('out'),go=document.getElementById('go');
-let lastUrl='';
+let lastUrl='',gallery=[],lbi=0;
 function msg(t){out.innerHTML='<div class="msg">'+t+'</div>';lastUrl=''}
 function esc(s){return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 f.addEventListener('submit',async e=>{
@@ -96,44 +104,61 @@ f.addEventListener('submit',async e=>{
   finally{go.disabled=false;if(window.turnstile)window.turnstile.reset()}
 });
 const DL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 21h16"/></svg>';
-function tile(x){
+function tile(x,i){
   const img=x.thumbnail_url?'<img src="'+esc(x.thumbnail_url)+'" alt="" loading="lazy" referrerpolicy="no-referrer" />':'<div class="ph"></div>';
   const tag=x.kind==='video'?'<span class="tag">&#9654; '+(x.duration_s?Math.round(x.duration_s)+'s':'Video')+'</span>':'';
   const t=encodeURIComponent(x.token);
-  return '<div class="tile" role="button" tabindex="0" data-t="'+t+'" data-k="'+esc(x.kind)+'" title="Click to open">'+img+tag+'<a class="dl" href="/dl?t='+t+'" title="Download" aria-label="Download">'+DL+'</a></div>';
+  return '<div class="tile" role="button" tabindex="0" data-i="'+i+'" title="Click to open">'+img+tag+'<a class="dl" href="/dl?t='+t+'" title="Download" aria-label="Download">'+DL+'</a></div>';
 }
 function render(d){
   const a=d.assets||[];
   if(!a.length){msg('Nothing downloadable in that link.');return}
+  gallery=a;
   let html='';
   if(a.length>1){
     const t=a.map(x=>encodeURIComponent(x.token)).join(',');
     html+='<a class="zip" href="/dl/zip?t='+t+'">'+DL+' Download all '+a.length+' as .zip</a>';
-    html+='<div class="grid">'+a.map(tile).join('')+'</div>';
+    html+='<div class="grid">'+a.map((x,i)=>tile(x,i)).join('')+'</div>';
   }else{
-    html+='<div class="single">'+tile(a[0])+'</div>';
+    html+='<div class="single">'+tile(a[0],0)+'</div>';
   }
   out.innerHTML=html;
 }
-const lb=document.getElementById('lb'),lbc=document.getElementById('lbc');
-function openLb(t,kind){
-  const src='/view?t='+t;
-  lbc.innerHTML=(kind==='video'?'<video src="'+src+'" controls autoplay playsinline></video>':'<img src="'+src+'" alt="" />');
-  lb.hidden=false;document.body.style.overflow='hidden';
+const lb=document.getElementById('lb'),lbc=document.getElementById('lbc'),lbn=document.getElementById('lbn');
+function showLb(){
+  const x=gallery[lbi];if(!x)return;
+  const src='/view?t='+encodeURIComponent(x.token);
+  lbc.innerHTML=(x.kind==='video'?'<video src="'+src+'" controls autoplay playsinline></video>':'<img src="'+src+'" alt="" />');
+  lbn.textContent=(lbi+1)+' / '+gallery.length;
 }
+function openLb(i){
+  lbi=i;lb.classList.toggle('multi',gallery.length>1);
+  lb.hidden=false;document.body.style.overflow='hidden';showLb();
+}
+function nav(n){if(gallery.length<2)return;lbi=(lbi+n+gallery.length)%gallery.length;showLb()}
 function closeLb(){lb.hidden=true;lbc.innerHTML='';document.body.style.overflow=''}
 out.addEventListener('click',e=>{
   if(e.target.closest('.dl'))return;
   const el=e.target.closest('.tile');
-  if(el&&el.dataset.t)openLb(el.dataset.t,el.dataset.k);
+  if(el&&el.dataset.i!==undefined)openLb(+el.dataset.i);
 });
 out.addEventListener('keydown',e=>{
   if(e.key!=='Enter'&&e.key!==' ')return;
   const el=e.target.closest('.tile');
-  if(el&&el.dataset.t){e.preventDefault();openLb(el.dataset.t,el.dataset.k)}
+  if(el&&el.dataset.i!==undefined){e.preventDefault();openLb(+el.dataset.i)}
 });
+lb.querySelector('.prev').addEventListener('click',()=>nav(-1));
+lb.querySelector('.next').addEventListener('click',()=>nav(1));
 lb.addEventListener('click',e=>{if(e.target===lb||e.target.closest('.x'))closeLb()});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!lb.hidden)closeLb()});
+let _tx=0;
+lbc.addEventListener('touchstart',e=>{_tx=e.touches[0].clientX},{passive:true});
+lbc.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-_tx;if(Math.abs(dx)>45)nav(dx<0?1:-1)});
+document.addEventListener('keydown',e=>{
+  if(lb.hidden)return;
+  if(e.key==='Escape')closeLb();
+  else if(e.key==='ArrowLeft')nav(-1);
+  else if(e.key==='ArrowRight')nav(1);
+});
 </script>
 </body>
 </html>`;
