@@ -6,12 +6,11 @@ workers_dev = true
 # Vars — set these at deploy (Cloudflare dashboard, or `wrangler deploy --var`),
 # NOT committed. RESOLVE_SERVICE_URL is the private backend's address and must
 # stay out of this public repo.
+# Vars are re-applied on every `wrangler deploy`, so they live here (a deploy
+# without them would reset the Worker). The backend is Turnstile-gated and
+# per-IP rate limited; DOWNLOAD_SIGNING_SECRET is a Worker secret, not here.
 [vars]
-# RESOLVE_SERVICE_URL is the private backend and is set at deploy
-# (`wrangler deploy --var RESOLVE_SERVICE_URL:https://dl-resolve.herascrape.com`
-# or in the dashboard), never committed.
-RESOLVE_SERVICE_URL = ""
-# Turnstile site key is public (rendered into the page), safe to commit.
+RESOLVE_SERVICE_URL = "https://dl-resolve.herascrape.com"
 TURNSTILE_SITE_KEY = "0x4AAAAAAFmhAE6yOQlH6U5_"
 
 # Secrets, set with `wrangler secret put` (never in this file):
