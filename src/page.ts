@@ -78,7 +78,7 @@ form{display:flex;flex-direction:column;gap:14px}
 <div class="cf-turnstile" data-sitekey="${siteKey}" data-appearance="interaction-only"></div>
 </form>
 <div id="out"></div>
-<p class="note">Public content only. Need bulk or no limits? <a href="https://herascrape.com">herascrape.com</a></p>
+<p class="note">Public content only. Need bulk or no limits? <a href="https://herascrape.com/?utm_source=downloader&amp;utm_medium=web&amp;utm_campaign=instagram-video-downloader">herascrape.com</a></p>
 </main>
 <div id="lb" class="lb" hidden><button class="x" type="button" aria-label="Close">&times;</button><button class="nav prev" type="button" aria-label="Previous">&#8249;</button><button class="nav next" type="button" aria-label="Next">&#8250;</button><div class="count" id="lbn"></div><div class="lb-inner" id="lbc"></div></div>
 <script>
