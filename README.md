@@ -23,7 +23,7 @@ Paste any public Instagram link and get the original-quality file:
 
 This repo is the **web front end**: the Cloudflare Worker that serves the page and streams your download straight from Instagram's CDN at the edge (same-origin, so you get a real "Save As" with a clean filename, and no file ever passes through a slow middle box).
 
-Resolution runs on the hosted **[herascrape](https://herascrape.com)** Instagram API, so this front end points at that backend rather than scraping anything itself. If you want to pull Instagram data at scale, into your own product, that is exactly what herascrape is for.
+Resolution runs on the hosted **[herascrape](https://herascrape.com/?utm_source=github&utm_medium=readme&utm_campaign=instagram-video-downloader)** Instagram API, so this front end points at that backend rather than scraping anything itself. If you want to pull Instagram data at scale, into your own product, that is exactly what herascrape is for.
 
 ```
 browser ──▶ Cloudflare Worker (this repo) ──▶ herascrape (resolve) 
@@ -50,7 +50,7 @@ npm run deploy
 
 ## Limits
 
-The web tool and the bot are rate-limited and verify a human check; they are for grabbing a handful of links, not bulk scraping. For unlimited, programmatic access use the [herascrape API](https://herascrape.com).
+The web tool and the bot are rate-limited and verify a human check; they are for grabbing a handful of links, not bulk scraping. For unlimited, programmatic access use the [herascrape API](https://herascrape.com/?utm_source=github&utm_medium=readme&utm_campaign=instagram-video-downloader).
 
 ## License
 
