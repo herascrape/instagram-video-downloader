@@ -1,10 +1,12 @@
+[![Instagram downloader: reels, videos, photos and stories](assets/readme-banner.png)](https://instagram-downloader.ops-9d2.workers.dev)
+
 # Instagram Downloader
 
 A free **Instagram video downloader** for public **reels, videos, photos,
 carousels and stories**. Use it two ways:
 
 - **Telegram bot:** [@instagram_media_downloader_bot](https://t.me/instagram_media_downloader_bot): paste a link, get the media back.
-- **Web:** [downloader.herascrape.com](https://downloader.herascrape.com): paste a link, click Download.
+- **Web:** [instagram-downloader.ops-9d2.workers.dev](https://instagram-downloader.ops-9d2.workers.dev): paste a link, click Download.
 
 Both are free and handle **public** Instagram content only.
 
